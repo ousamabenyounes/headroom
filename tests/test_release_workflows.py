@@ -514,12 +514,47 @@ def test_release_workflow_verifies_versions_before_build_outputs() -> None:
 
 
 def test_sdist_license_is_packaged_and_verified_before_upload() -> None:
+    """STRUCTURAL INVARIANT: the sdist tarball must physically contain
+    every license file PEP 639 declares in PKG-INFO, and the release
+    workflow must verify that match before upload.
+
+    PyPI rejects sdists whose `License-File:` metadata entries
+    reference files missing from the tarball with `400 License-File X
+    does not exist in distribution file ...`. Maturin's PEP 639
+    auto-discovery emits both `LICENSE` and `NOTICE` into PKG-INFO
+    because both files exist at the project root and match the default
+    glob — but maturin sdists don't get the package-directory
+    treatment wheels do, so each file must be explicitly listed in
+    `[tool.maturin].include` with `format = "sdist"`. Issue trail:
+    sdist publish broke at v0.20.16 (the hatch -> maturin migration
+    in 2a91cbb dropped NOTICE from the include list), masked for ~22
+    releases by an earlier twine `400 File already exists` failure on
+    duplicate wheels, surfaced once PR #412 added skip-existing.
+    """
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     release_yml = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
-    assert 'include = [{ path = "LICENSE", format = "sdist" }]' in pyproject
-    assert "name: Verify sdist includes top-level LICENSE" in release_yml
-    assert 'license_path = f"{root}/LICENSE"' in release_yml
+    assert '{ path = "LICENSE", format = "sdist" }' in pyproject, (
+        "pyproject.toml [tool.maturin].include must list LICENSE for sdist format"
+    )
+    assert '{ path = "NOTICE", format = "sdist" }' in pyproject, (
+        "pyproject.toml [tool.maturin].include must list NOTICE for sdist format. "
+        "Maturin's PEP 639 auto-discovery emits `License-File: NOTICE` into "
+        "PKG-INFO because NOTICE exists at the project root, so the file MUST "
+        "ship in the tarball or PyPI rejects the sdist with a 400."
+    )
+    assert "name: Verify sdist license-file metadata matches tarball contents" in release_yml, (
+        "release.yml must run the License-File / tarball-contents cross-check before publish"
+    )
+    assert 'if line.startswith("License-File:")' in release_yml, (
+        "release.yml verifier must parse PKG-INFO License-File entries — "
+        "not just a hardcoded LICENSE check — so any future PEP 639-discoverable "
+        "file (COPYING, AUTHORS, ...) is also gated."
+    )
+    assert "declares License-File entries that are missing from the tarball" in release_yml, (
+        "release.yml verifier must fail loudly when declared license files "
+        "are missing — silent passes would let the same regression resurface."
+    )
 
 
 def test_pypi_publish_failure_blocks_github_release() -> None:
