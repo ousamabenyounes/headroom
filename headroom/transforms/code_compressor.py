@@ -151,7 +151,9 @@ def unload_tree_sitter() -> bool:
     if thread_parsers:
         count = len(thread_parsers)
         thread_parsers.clear()
-        logger.info("Unloaded %d tree-sitter parsers from thread %s", count, threading.current_thread().name)
+        logger.info(
+            "Unloaded %d tree-sitter parsers from thread %s", count, threading.current_thread().name
+        )
         return True
     return False
 
