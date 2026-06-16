@@ -167,8 +167,10 @@ def make_savings_logger(
 
 def _aider_version() -> str:
     """Installed aider version string (imported lazily — aider is an ``[aider]``-extra dep)."""
-
-    import aider
+    try:
+        import aider
+    except ModuleNotFoundError:
+        return "not-installed"
 
     return str(getattr(aider, "__version__", "unknown"))
 
