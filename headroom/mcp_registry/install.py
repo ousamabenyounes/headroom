@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterable
 
 from .base import MCPRegistrar, RegisterResult, RegisterStatus, ServerSpec
@@ -11,6 +12,10 @@ from .opencode import OpencodeRegistrar
 
 #: Default proxy URL used when none is given.
 DEFAULT_PROXY_URL = "http://127.0.0.1:8787"
+HEADROOM_SERVER_NAME = "headroom"
+HEADROOM_MODULE = "headroom.cli"
+HEADROOM_MCP_ARGS = ("-m", HEADROOM_MODULE, "mcp", "serve")
+HEADROOM_PROXY_URL_ENV = "HEADROOM_PROXY_URL"
 
 
 def get_all_registrars() -> list[MCPRegistrar]:
@@ -29,11 +34,11 @@ def build_headroom_spec(proxy_url: str = DEFAULT_PROXY_URL) -> ServerSpec:
     """
     env: dict[str, str] = {}
     if proxy_url and proxy_url != DEFAULT_PROXY_URL:
-        env["HEADROOM_PROXY_URL"] = proxy_url
+        env[HEADROOM_PROXY_URL_ENV] = proxy_url
     return ServerSpec(
-        name="headroom",
-        command="headroom",
-        args=("mcp", "serve"),
+        name=HEADROOM_SERVER_NAME,
+        command=sys.executable,
+        args=HEADROOM_MCP_ARGS,
         env=env,
     )
 

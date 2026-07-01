@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from headroom.mcp_registry.base import (
     MCPRegistrar,
     RegisterResult,
@@ -54,8 +56,8 @@ class _FakeRegistrar(MCPRegistrar):
 def test_build_spec_default_proxy_no_env() -> None:
     spec = build_headroom_spec()
     assert spec.name == "headroom"
-    assert spec.command == "headroom"
-    assert spec.args == ("mcp", "serve")
+    assert spec.command == sys.executable
+    assert spec.args == ("-m", "headroom.cli", "mcp", "serve")
     assert spec.env == {}
 
 
